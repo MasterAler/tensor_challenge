@@ -8,23 +8,33 @@ CREATE TABLE item
     parent_id  INTEGER REFERENCES item (id),
     name       TEXT NOT NULL,
     short_name TEXT,
-    name_key   TEXT GENERATED ALWAYS AS (
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+    name_lc    TEXT GENERATED ALWAYS AS (
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(
         lower(name),
-            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'), 'З', 'з'), 'И', 'и'), 'Й', 'й'),
-            'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о'), 'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'),
-            'Х', 'х'), 'Ц', 'ц'), 'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
+            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'),
+            'З', 'з'), 'И', 'и'), 'Й', 'й'), 'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о')
+    ) VIRTUAL,
+    name_key   TEXT GENERATED ALWAYS AS (
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        name_lc,
+            'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'), 'Х', 'х'), 'Ц', 'ц'),
+            'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
     ) STORED,
-    short_key  TEXT GENERATED ALWAYS AS (
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+    short_lc   TEXT GENERATED ALWAYS AS (
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(
         lower(short_name),
-            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'), 'З', 'з'), 'И', 'и'), 'Й', 'й'),
-            'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о'), 'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'),
-            'Х', 'х'), 'Ц', 'ц'), 'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
+            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'),
+            'З', 'з'), 'И', 'и'), 'Й', 'й'), 'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о')
+    ) VIRTUAL,
+    short_key  TEXT GENERATED ALWAYS AS (
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        short_lc,
+            'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'), 'Х', 'х'), 'Ц', 'ц'),
+            'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
     ) STORED
 );
 
@@ -57,17 +67,25 @@ INSERT INTO item (id, parent_id, name, short_name) VALUES
     (19, NULL, 'Услуги',           NULL);
 
 WITH RECURSIVE
+search_lc (q) AS
+(
+    SELECT
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        lower(phrase),
+            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'),
+            'З', 'з'), 'И', 'и'), 'Й', 'й'), 'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о')
+    FROM (SELECT 'това' AS phrase)
+),
 search (q) AS MATERIALIZED
 (
     SELECT
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-        lower(phrase),
-            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'), 'З', 'з'), 'И', 'и'), 'Й', 'й'),
-            'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о'), 'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'),
-            'Х', 'х'), 'Ц', 'ц'), 'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
-    FROM (SELECT 'това' AS phrase)
+        replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        q,
+            'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'), 'Х', 'х'), 'Ц', 'ц'),
+            'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
+    FROM search_lc
 ),
 found (id) AS MATERIALIZED
 (
