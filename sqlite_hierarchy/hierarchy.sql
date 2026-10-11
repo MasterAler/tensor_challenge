@@ -6,13 +6,31 @@ CREATE TABLE item
 (
     id         INTEGER PRIMARY KEY,
     parent_id  INTEGER REFERENCES item (id),
-    name       TEXT NOT NULL COLLATE NOCASE,
-    short_name TEXT COLLATE NOCASE
+    name       TEXT NOT NULL,
+    short_name TEXT,
+    name_key   TEXT GENERATED ALWAYS AS (
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        lower(name),
+            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'), 'З', 'з'), 'И', 'и'), 'Й', 'й'),
+            'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о'), 'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'),
+            'Х', 'х'), 'Ц', 'ц'), 'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
+    ) STORED,
+    short_key  TEXT GENERATED ALWAYS AS (
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        lower(short_name),
+            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'), 'З', 'з'), 'И', 'и'), 'Й', 'й'),
+            'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о'), 'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'),
+            'Х', 'х'), 'Ц', 'ц'), 'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
+    ) STORED
 );
 
 CREATE INDEX item_parent ON item (parent_id);
-CREATE INDEX item_name ON item (name);
-CREATE INDEX item_short_name ON item (short_name);
+CREATE INDEX item_name_key ON item (name_key);
+CREATE INDEX item_short_key ON item (short_key);
 
 INSERT INTO item (id, parent_id, name, short_name) VALUES
     (1,  NULL, 'Первый товар',     'П.товар'),
@@ -21,6 +39,7 @@ INSERT INTO item (id, parent_id, name, short_name) VALUES
     (4,  2,    'Товар №2',         '№2'),
     (5,  1,    'Товар №3',         '№3'),
     (6,  1,    'Товар №4',         '№4'),
+    (20, 1,    'товар без номера', NULL),
 
     (7,  NULL, 'Третий товар',     'Т.товар'),
     (8,  7,    'Вторичный товар',  'В.товар'),
@@ -38,10 +57,23 @@ INSERT INTO item (id, parent_id, name, short_name) VALUES
     (19, NULL, 'Услуги',           NULL);
 
 WITH RECURSIVE
-found (id) AS
+search (q) AS MATERIALIZED
+(
+    SELECT
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+        lower(phrase),
+            'А', 'а'), 'Б', 'б'), 'В', 'в'), 'Г', 'г'), 'Д', 'д'), 'Е', 'е'), 'Ё', 'ё'), 'Ж', 'ж'), 'З', 'з'), 'И', 'и'), 'Й', 'й'),
+            'К', 'к'), 'Л', 'л'), 'М', 'м'), 'Н', 'н'), 'О', 'о'), 'П', 'п'), 'Р', 'р'), 'С', 'с'), 'Т', 'т'), 'У', 'у'), 'Ф', 'ф'),
+            'Х', 'х'), 'Ц', 'ц'), 'Ч', 'ч'), 'Ш', 'ш'), 'Щ', 'щ'), 'Ъ', 'ъ'), 'Ы', 'ы'), 'Ь', 'ь'), 'Э', 'э'), 'Ю', 'ю'), 'Я', 'я')
+    FROM (SELECT 'това' AS phrase)
+),
+found (id) AS MATERIALIZED
 (
     SELECT id FROM item
-    WHERE name LIKE 'Това%' OR short_name LIKE 'Това%'
+    WHERE name_key >= (SELECT q FROM search) AND name_key < (SELECT q || char(1114111) FROM search)
+       OR short_key >= (SELECT q FROM search) AND short_key < (SELECT q || char(1114111) FROM search)
 ),
 up (id) AS
 (
@@ -54,12 +86,12 @@ up (id) AS
 ),
 tree (id, parent_id, level, name, short_name, path) AS
 (
-    SELECT i.id, i.parent_id, 0, i.name, i.short_name, i.name || char(1) || i.id
+    SELECT i.id, i.parent_id, 0, i.name, i.short_name, i.name_key || char(1) || i.id
     FROM item i
     JOIN up ON up.id = i.id
     WHERE i.parent_id IS NULL
     UNION ALL
-    SELECT i.id, i.parent_id, t.level + 1, i.name, i.short_name, t.path || char(2) || i.name || char(1) || i.id
+    SELECT i.id, i.parent_id, t.level + 1, i.name, i.short_name, t.path || char(2) || i.name_key || char(1) || i.id
     FROM tree t
     JOIN item i ON i.parent_id = t.id
     JOIN up ON up.id = i.id
