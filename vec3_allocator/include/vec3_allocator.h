@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 struct Vec3
 {
     float x;
@@ -10,9 +12,53 @@ struct Vec3
 class Vec3Allocator
 {
 public:
+    static constexpr std::size_t CELL_ALIGN = 16;
+    static constexpr std::size_t CELLS_PER_SEGMENT = 5;
+
     Vec3Allocator() = default;
     ~Vec3Allocator();
 
-    Vec3* Allocate();
-    void Deallocate(Vec3* ptr) noexcept;
+    Vec3Allocator(const Vec3Allocator&) = delete;
+    Vec3Allocator& operator=(const Vec3Allocator&) = delete;
+    Vec3Allocator(Vec3Allocator&&) = delete;
+    Vec3Allocator& operator=(Vec3Allocator&&) = delete;
+
+    Vec3* Allocate()
+    {
+        if (!free_)
+            AddSegment();
+
+        Cell* cell = free_;
+        free_ = cell->next;
+        return reinterpret_cast<Vec3*>(cell);
+    }
+
+    void Deallocate(Vec3* ptr) noexcept
+    {
+        Cell* cell = reinterpret_cast<Cell*>(ptr);
+        cell->next = free_;
+        free_ = cell;
+    }
+
+private:
+    union alignas(CELL_ALIGN) Cell
+    {
+        Cell* next;
+        unsigned char storage[sizeof(Vec3)];
+    };
+
+    struct Segment
+    {
+        Cell cells[CELLS_PER_SEGMENT];
+        Segment* next;
+    };
+
+    static_assert(sizeof(Cell) == CELL_ALIGN);
+    static_assert(alignof(Cell) == CELL_ALIGN);
+    static_assert(sizeof(Segment::cells) == CELLS_PER_SEGMENT * CELL_ALIGN);
+
+    void AddSegment();
+
+    Segment* segments_ = nullptr;
+    Cell* free_ = nullptr;
 };
