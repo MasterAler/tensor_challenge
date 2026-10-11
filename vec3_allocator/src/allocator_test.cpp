@@ -24,7 +24,7 @@ void* operator new(std::size_t size, std::align_val_t al)
 {
     ++g_new_calls;
     ++g_live_blocks;
-#ifdef _MSC_VER
+#ifdef _WIN32
     if (void* p = _aligned_malloc(size ? size : 1, static_cast<std::size_t>(al)))
         return p;
 #else
@@ -77,7 +77,7 @@ void operator delete(void* p, std::align_val_t) noexcept
     if (!p)
         return;
     --g_live_blocks;
-#ifdef _MSC_VER
+#ifdef _WIN32
     _aligned_free(p);
 #else
     std::free(p);
