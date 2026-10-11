@@ -19,6 +19,46 @@ void* operator new(std::size_t size)
     throw std::bad_alloc();
 }
 
+// x86 msvc: default new alignment is 8, so alignas(16) goes here
+void* operator new(std::size_t size, std::align_val_t al)
+{
+    ++g_new_calls;
+    ++g_live_blocks;
+#ifdef _MSC_VER
+    if (void* p = _aligned_malloc(size ? size : 1, static_cast<std::size_t>(al)))
+        return p;
+#else
+    std::size_t a = static_cast<std::size_t>(al);
+    if (void* p = std::aligned_alloc(a, (size + a - 1) / a * a))
+        return p;
+#endif
+    throw std::bad_alloc();
+}
+
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept
+{
+    try
+    {
+        return operator new(size);
+    }
+    catch (...)
+    {
+        return nullptr;
+    }
+}
+
+void* operator new(std::size_t size, std::align_val_t al, const std::nothrow_t&) noexcept
+{
+    try
+    {
+        return operator new(size, al);
+    }
+    catch (...)
+    {
+        return nullptr;
+    }
+}
+
 void operator delete(void* p) noexcept
 {
     if (!p)
@@ -30,6 +70,23 @@ void operator delete(void* p) noexcept
 void operator delete(void* p, std::size_t) noexcept
 {
     operator delete(p);
+}
+
+void operator delete(void* p, std::align_val_t) noexcept
+{
+    if (!p)
+        return;
+    --g_live_blocks;
+#ifdef _MSC_VER
+    _aligned_free(p);
+#else
+    std::free(p);
+#endif
+}
+
+void operator delete(void* p, std::size_t, std::align_val_t al) noexcept
+{
+    operator delete(p, al);
 }
 
 bool is_aligned(const void* p)
