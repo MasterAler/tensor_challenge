@@ -42,3 +42,6 @@ compile_commands.json
 
 # task texts
 *.docx
+
+# Qt creator subdir
+vec3_allocator/.qtcreator/
