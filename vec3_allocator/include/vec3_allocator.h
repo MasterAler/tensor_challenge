@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <new>
 
 struct Vec3
 {
@@ -30,14 +31,13 @@ public:
 
         Cell* cell = free_;
         free_ = cell->next;
-        return reinterpret_cast<Vec3*>(cell);
+        return ::new (cell->storage) Vec3;
     }
 
     void Deallocate(Vec3* ptr) noexcept
     {
-        Cell* cell = reinterpret_cast<Cell*>(ptr);
-        cell->next = free_;
-        free_ = cell;
+        ptr->~Vec3();
+        free_ = ::new (static_cast<void*>(ptr)) Cell { free_ };
     }
 
 private:
